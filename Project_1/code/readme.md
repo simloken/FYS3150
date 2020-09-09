@@ -17,4 +17,4 @@ LU.py solves our system on linear equations using LU-factorization. Goes from n 
 
 >plotter.py
 
-plotter.py plots the benchmark times and the error. Requires full runs through n = 10 to n = 10000 / 10000000. Because this was a last minute addition it's not very flexible and thus not compatible with more than thoss full runs.
+plotter.py plots the benchmark times and the error. Requires full runs through n = 10 to n = 10000 / 10000000. Because this was a last minute addition it's not very flexible and thus not compatible with more than complete runs for all values of n
