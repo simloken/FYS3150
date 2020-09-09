@@ -1,0 +1,14 @@
+General Solution, 1, -1.1797, -1.04139, 0.008614 
+General Solution, 2, -3.08804, -2.00432, 0.0093461 
+General Solution, 3, -5.08005, -3.00043, 0.0469744 
+General Solution, 4, -7.07936, -4.00004, 0.0883437 
+General Solution, 5, -9.00478, -5, 0.810089 
+General Solution, 6, -6.77137, -6, 7.90984 
+General Solution, 7, -13.007, -7, 79.2323 
+Special Solution, 1, -1.1797, -1.04139, 0.0505786 
+Special Solution, 2, -3.08804, -2.00432, 0.0091853 
+Special Solution, 3, -5.08005, -3.00043, 0.0154973 
+Special Solution, 4, -7.07927, -4.00004, 0.0787301 
+Special Solution, 5, -9.08057, -5, 0.692779 
+Special Solution, 6, -13.5948, -6, 6.88959 
+Special Solution, 7, -inf, -7, 68.8752 
