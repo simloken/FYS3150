@@ -10,4 +10,4 @@ Zipped folder with source code + images
 
 >source.tex
 
-Clean source code
+Source code alone should that be preferable
