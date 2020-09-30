@@ -9,4 +9,4 @@ GPU: GTX 1080
 
 RAM: 16GB 3.6 GHz DDR4 Memory
 
-Contains all files used for Project 1 in FYS3150
+Contains all files used for Project 2 in FYS3150
