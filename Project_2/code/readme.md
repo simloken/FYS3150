@@ -1,4 +1,4 @@
-## This is all the code used in project 2. It's all written in Python 3.8.
+## This is all the code used in Project 2. It's all written in Python 3.8.
 >functions.py 
 
 functions.py contains all functions used in all in the project
