@@ -88,22 +88,83 @@ class CelestialBody:
         self.p = p
         self.v = v
         self.method = 'Verlet'
+      
+    def Energies(self,primary,N,dt):
+        sx, sy = self.r0[0], self.r0[1] #self position  
+        px, py = primary.r0[0], primary.r0[1] #primary position
+        rx = px-sx
+        ry = py-sy
+        r = np.sqrt(rx**2+ry**2) #find radius from planet and it's primary
         
-G = 6.67e-11; AU = 149.6e9     
+        ETOT = np.zeros(N); U = np.zeros(N); K = np.zeros(N)
+        U[0] = -G*self.mass*primary.mass/r
+        K[0] = 0.5*self.mass*np.linalg.norm(self.v0)**2
+        ETOT[0] = U[0]+K[0]
+        
+        v = np.zeros((N,2)); p = np.zeros((N,2))
+        v[0] = self.v0; p[0] = self.r0
+        dt2 = 0.5*dt*dt #save FLOPs
+        Fx,Fy = self.force(primary) #calculating the first acceleration here
+        ax, ay = Fx/self.mass, Fy/self.mass #this saves us upwards of 50%+ runtime
+        a = np.array((ax,ay)) #as we don't have to calculate acceleration twice in-loop
+        for i in range(N-1):
+            p[i+1] = p[i] + v[i]*dt+a*dt2
+            self.r0 = p[i+1]
+            Fx,Fy = self.force(primary)
+            ax, ay = Fx/self.mass, Fy/self.mass
+            a2 = a #old a
+            a = np.array((ax,ay)) #forward a
+            v[i+1] = v[i] + dt*((a+a2)/2)
+            U[i+1] = -G*self.mass*primary.mass/np.linalg.norm(self.r0)
+            K[i+1] = 0.5*self.mass*np.linalg.norm(v[i+1])**2
+            ETOT[i+1] = U[i+1]+K[i+1]
+        return U, K, ETOT
+G = 6.67e-11; AU = 149.6e9
 earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24)
 sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30)
+
 t = time.perf_counter()
 earth.fEuler(sun,365,24*3600)
 t1 = time.perf_counter() -t
 E = earth; E.p = E.p/AU #scaling
+
 earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24) #re-initializing
+
 t = time.perf_counter()
 earth.Verlet(sun,365,24*3600)
 t2 = time.perf_counter() - t
 V = earth; V.p = V.p/AU #scaling
+
+
 print('Time elapsed for Forward Euler Method:', t1)
 print('Time elapsed for Verlet Method:', t2)
+
+
+
 plt.plot(E.p[:,0],E.p[:,1], label='%s using %s method' %(E.name, E.method))
 plt.plot(V.p[:,0],V.p[:,1], label='%s using %s method' %(V.name, V.method))
+plt.xlabel('x position [AU]')
+plt.ylabel('y position [AU]')
+plt.title('Earths orbit around the sun')
+plt.legend()
+plt.show()
+
+earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24) #re-initializing
+U, K, ETOT = earth.Energies(sun,365,24*3600)
+
+plt.figure()
+plt.title('All energies of %s' %(earth.name))
+plt.plot(range(len(ETOT)),U, label='Potential Energy')
+plt.plot(range(len(ETOT)),K, label='Kinetic Energy')
+plt.plot(range(len(ETOT)),ETOT, label='Total Energy')
+plt.xlabel('Days')
+plt.ylabel('Energy [J]')
+plt.legend()
+plt.show()
+plt.figure()
+plt.title('Total Energy of %s' %(earth.name))
+plt.plot(range(len(ETOT)),ETOT, label='Total Energy')
+plt.xlabel('Days')
+plt.ylabel('Energy [J]')
 plt.legend()
 plt.show()
