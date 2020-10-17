@@ -67,8 +67,22 @@ class CelestialBody:
         self.p = p
         self.v = v
 
-    def Verlet():
-        lol = 'lmao'
+
+    def Verlet(self, primary, N, dt):
+        v = np.zeros((N,2)); p = np.zeros((N,2))
+        v[0] = self.v0; p[0] = self.r0
+        for i in range(N-1):
+            Fx,Fy = self.force(primary)
+            ax, ay = Fx/self.mass, Fy/self.mass
+            a = np.array((ax,ay))
+            p[i+1] = p[i] + v[i]*dt+0.5*a*dt*dt
+            self.r0 = p[i+1]
+            Fx,Fy = self.force(primary)
+            ax, ay = Fx/self.mass, Fy/self.mass
+            a2 = np.array((ax,ay))
+            v[i+1] = v[i] + dt*((a+a2)/2)
+        self.p = p
+        self.v = v
         
 G = 6.67e-11
 AU = 149.6e9       
@@ -76,7 +90,7 @@ earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24)
 sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30)
 
 earth.fEuler(sun,365,24*3600)
-l = earth.p
+earth.Verlet(sun,365,24*3600)
 plt.plot(earth.p[:,0],earth.p[:,1], label='%s' %(earth.name))
 plt.legend()
 plt.show()
