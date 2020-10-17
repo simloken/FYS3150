@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from math import atan2
+import time
 class CelestialBody:
     def __init__(self, name, r0, v0, mass):
         
@@ -40,6 +41,7 @@ class CelestialBody:
         self.mass = mass
         self.p = 0
         self.v = 0
+        self.method = 0
         
     def force(self, primary): #finds the x-and y-force on self exerted by primary
         
@@ -66,31 +68,42 @@ class CelestialBody:
             self.r0 = p[i+1]
         self.p = p
         self.v = v
-
+        self.method = 'Forward Euler'
 
     def Verlet(self, primary, N, dt):
         v = np.zeros((N,2)); p = np.zeros((N,2))
         v[0] = self.v0; p[0] = self.r0
+        dt2 = 0.5*dt*dt #save FLOPs
+        Fx,Fy = self.force(primary) #calculating the first acceleration here
+        ax, ay = Fx/self.mass, Fy/self.mass #this saves us upwards of 50%+ runtime
+        a = np.array((ax,ay)) #as we don't have to calculate acceleration twice in-loop
         for i in range(N-1):
-            Fx,Fy = self.force(primary)
-            ax, ay = Fx/self.mass, Fy/self.mass
-            a = np.array((ax,ay))
-            p[i+1] = p[i] + v[i]*dt+0.5*a*dt*dt
+            p[i+1] = p[i] + v[i]*dt+a*dt2
             self.r0 = p[i+1]
             Fx,Fy = self.force(primary)
             ax, ay = Fx/self.mass, Fy/self.mass
-            a2 = np.array((ax,ay))
+            a2 = a #old a
+            a = np.array((ax,ay)) #forward a
             v[i+1] = v[i] + dt*((a+a2)/2)
         self.p = p
         self.v = v
+        self.method = 'Verlet'
         
-G = 6.67e-11
-AU = 149.6e9       
+G = 6.67e-11; AU = 149.6e9     
 earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24)
 sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30)
-
+t = time.perf_counter()
 earth.fEuler(sun,365,24*3600)
+t1 = time.perf_counter() -t
+E = earth; E.p = E.p/AU #scaling
+earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24) #re-initializing
+t = time.perf_counter()
 earth.Verlet(sun,365,24*3600)
-plt.plot(earth.p[:,0],earth.p[:,1], label='%s' %(earth.name))
+t2 = time.perf_counter() - t
+V = earth; V.p = V.p/AU #scaling
+print('Time elapsed for Forward Euler Method:', t1)
+print('Time elapsed for Verlet Method:', t2)
+plt.plot(E.p[:,0],E.p[:,1], label='%s using %s method' %(E.name, E.method))
+plt.plot(V.p[:,0],V.p[:,1], label='%s using %s method' %(V.name, V.method))
 plt.legend()
 plt.show()
