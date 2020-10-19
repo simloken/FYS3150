@@ -121,33 +121,45 @@ class CelestialBody:
             K[i+1] = 0.5*self.mass*np.linalg.norm(v[i+1])**2
             ETOT[i+1] = U[i+1]+K[i+1]
         return U, K, ETOT
-"""   
-    def VerletMultiBody(self, primary, N, dt, beta=2): #not DONE
-        v = np.zeros((N,2)); p = np.zeros((N,2))
-        v[0] = self.v0; p[0] = self.r0
+
+    def ForceMultiBody(self, bodies, beta): #finds the x-and y-force on self exerted by primary
+        for primary in bodies:
+            TFx = 0; TFy = 0
+            if self == primary:
+                break
+            sx, sy = self.r0[0], self.r0[1] #self position  
+            px, py = primary.r0[0], primary.r0[1] #primary position
+            rx = px-sx
+            ry = py-sy
+            r = np.sqrt(rx**2+ry**2) #find radius from planet and it's primary
+            F = G*self.mass*primary.mass/(r**beta) #force between planet and it's primary
+            theta = atan2(ry,rx)
+            Fx = F*np.cos(theta); Fy = F*np.sin(theta)
+            TFx += Fx; TFy += Fy
+        return TFx, TFy
+    
+    def VerletMultiBody(bodies, N, dt, beta=2): #not DONE
         dt2 = 0.5*dt*dt #save FLOPs
-        TFx, TFy = 0
-        for bodies in something:
-            Fx,Fy = self.force(bodies, beta) #calculating the first acceleration 
-            TFx, TFy += Fx, Fy
-        ax, ay = Fx/self.mass, Fy/self.mass #this saves us upwards of 50%+ runtime
-        a = np.array((ax,ay)) #as we don't have to calculate acceleration twice in-loop
-        for i in range(N-1):
-            p[i+1] = p[i] + v[i]*dt+a*dt2
-            self.r0 = p[i+1]
-            TFx, TFy = 0
-            for bodies in something:
-                Fx,Fy = self.force(bodies,beta)
-                TFx, TFy += Fx, Fy
-            ax, ay = Fx/self.mass, Fy/self.mass
-            a2 = a #old a
-            a = np.array((ax,ay)) #forward a
-            v[i+1] = v[i] + dt*((a+a2)/2)
-        self.p = p
-        self.v = v
-        self.method = 'Verlet'
-"""  
-#B - DONE    
+        for body in bodies:
+            v = np.zeros((N,2)); p = np.zeros((N,2))
+            v[0] = body.v0; p[0] = body.r0
+            Fx,Fy = body.ForceMultiBody(bodies, beta)
+            ax, ay = Fx/body.mass, Fy/body.mass
+            a = np.array((ax,ay))
+            for i in range(N-1):
+                p[i+1] = p[i] + v[i]*dt+a*dt2
+                print(body.name, p[i+1])
+                body.r0 = p[i+1]
+                Fx,Fy = body.ForceMultiBody(bodies,beta)
+                ax, ay = Fx/body.mass, Fy/body.mass
+                a2 = a #old a
+                a = np.array((ax,ay)) #forward a
+                v[i+1] = v[i] + dt*((a+a2)/2)
+            body.p = p
+            body.v = v
+            body.method = 'Verlet'
+ 
+#b - DONE    
 G = 6.67e-11; AU = 149.6e9
 earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24)
 sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30)
@@ -177,6 +189,7 @@ plt.ylabel('y position [AU]')
 plt.title('Earths orbit around the sun')
 plt.legend()
 plt.show()
+
 #c - DONE
 earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24) #re-initializing
 U, K, ETOT = earth.Energies(sun,365,24*3600)
@@ -238,3 +251,11 @@ plt.show()
 earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24) #re-initializing
 sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30) #re-initializing
 jupiter = CelestialBody('Jupiter', np.array((0,5.2*AU)), np.array((13e3,0)), 1.9e27)
+bodies= [earth, jupiter, sun]
+CelestialBody.VerletMultiBody(bodies, 365, 24*3600)
+test1 = earth.p
+test2 = jupiter.p
+plt.plot(earth.p[:,0]/AU,earth.p[:,1]/AU, label='Earth')
+plt.plot(jupiter.p[:,0]/AU, jupiter.p[:,1]/AU, label='Jupiter')
+plt.legend()
+plt.show()
