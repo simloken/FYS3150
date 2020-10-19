@@ -73,17 +73,23 @@ class CelestialBody:
         self.v = v
         self.method = 'Forward Euler'
 
-    def Verlet(self, primary, N, dt, beta=2):
+    def Verlet(self, primary, N, dt, beta=2, rel=False):
         v = np.zeros((N,2)); p = np.zeros((N,2))
         v[0] = self.v0; p[0] = self.r0
         dt2 = 0.5*dt*dt #save FLOPs
-        Fx,Fy = self.force(primary, beta) #calculating the first acceleration here
+        if rel == False:
+            Fx,Fy = self.force(primary, beta) #calculating the first acceleration here
+        else:
+            Fx,Fy = self.ForceRelativistic(primary,beta, v[0])
         ax, ay = Fx/self.mass, Fy/self.mass #this saves us upwards of 50%+ runtime
         a = np.array((ax,ay)) #as we don't have to calculate acceleration twice in-loop
         for i in range(N-1):
             p[i+1] = p[i] + v[i]*dt+a*dt2
             self.r0 = p[i+1]
-            Fx,Fy = self.force(primary,beta)
+            if rel == False:
+                Fx,Fy = self.force(primary,beta)
+            else:
+                Fx,Fy = self.ForceRelativistic(primary,beta, v[i])
             ax, ay = Fx/self.mass, Fy/self.mass
             a2 = a #old a
             a = np.array((ax,ay)) #forward a
@@ -158,7 +164,22 @@ class CelestialBody:
                 body.a = np.array((ax,ay)) #forward a
                 body.v[i+1] = body.v[i] + dt*((body.a+body.a2)/2)
             body.method = 'Verlet'
- 
+
+    def ForceRelativistic(self, primary, beta, vVec): #finds the x-and y-force on self exerted by primary
+        
+        sx, sy = self.r0[0], self.r0[1] #self position  
+        px, py = primary.r0[0], primary.r0[1] #primary position
+        rx = px-sx
+        ry = py-sy
+        rv = np.array((rx,ry))
+        crs = np.cross(rv,vVec)
+        c = 3e8
+        r = np.sqrt(rx**2+ry**2) #find radius from planet and it's primary
+        F = (G*self.mass*primary.mass/(r**beta))*(1+((3*crs**2)/(r**2*c**2))) #force between planet and it's primary
+        theta = atan2(ry,rx)
+        Fx = F*np.cos(theta); Fy = F*np.sin(theta)
+        return Fx, Fy
+    
 #b - DONE    
 G = 6.67e-11; AU = 149.6e9
 earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24)
@@ -263,13 +284,53 @@ plt.legend()
 plt.show()
 
 #h
-sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30) #re-initializing
-#mercury = CelestialBody('Mercury', np.array((0,0)), np.array((0,0)), 3.3e23) #re-initializing
-#venus = CelestialBody('Venus', np.array((0,0)), np.array((0,0)), 4.9e24) #re-initializing
+comx = (1.9e27*5.2*AU)/(2e30+6e24+1.9e27)
+comy = (6e24*AU)/(2e30+6e24+1.9e27)
+sun = CelestialBody('Sun', np.array((-comx,-comy)), np.array((-12.35,-0.09)), 2e30) #re-initializing
 earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24) #re-initializing
-#mars = CelestialBody('Mars', np.array((0,0)), np.array((0,0)), 6.6e23) #re-initializing
 jupiter = CelestialBody('Jupiter', np.array((0,5.2*AU)), np.array((13e3,0)), 1.9e27)
-#saturn = CelestialBody('Saturn', np.array((0,0)), np.array((0,0)), 5.5e26) #re-initializing
-#uranus = CelestialBody('Uranus', np.array((0,0)), np.array((0,0)), 8.8e25) #re-initializing
-#neptune = CelestialBody('Neptune', np.array((0,0)), np.array((0,0)), 1.03e26) #re-initializing
-#pluto = CelestialBody('Pluto', np.array((0,0)), np.array((0,0)), 1.3e22) #re-initializing
+bodies = [earth,jupiter, sun]
+CelestialBody.VerletMultiBody(bodies, 50*365, 24*3600)
+plt.plot(earth.p[:,0]/AU,earth.p[:,1]/AU, label='Earth')
+plt.plot(jupiter.p[:,0]/AU, jupiter.p[:,1]/AU, label='Jupiter')
+plt.plot(sun.p[:,0]/AU, sun.p[:,1]/AU, label='Sun')
+plt.xlabel('x position [AU]')
+plt.ylabel('y position [AU]')
+plt.title('Earth and Jupiters Orbit with real Jupiter mass over 50 years\nwith initialized sun with regards to Center of Mass')
+plt.legend()
+plt.show()
+
+""" center of mass for system with all 8 planets (and Pluto) (antiquated, but kept around as writing out all of this takes a while)
+comx = (AU*(-3.51e-1*3.3e23+-2.4e-1*4.9e24+9.05e-1*6e24+1.3*6.6e23+2.56*1.9e27+5.15*5.5e26+1.55e1*8.8e25+2.94e1*1.03e26+1.38e1*1.3e22)/
+        (2e30+3.3e23+4.9e24+6e24+6.6e23+1.9e27+5.5e26+8.8e25+1.03e26+1.3e22))
+comy = (AU*(-6.78e-2*3.3e23+6.85e-1*4.9e24+4.09e-1*6e24+5.52e-1*6.6e23-4.42*1.9e27-8.56*5.5e26+1.22e1*8.8e25-5.46*1.03e26-3.13e1*1.3e22)/
+        (2e30+3.3e23+4.9e24+6e24+6.6e23+1.9e27+5.5e26+8.8e25+1.03e26+1.3e22))"""
+
+sun = CelestialBody('Sun', AU*np.array((-6.11e-3,6.42e-3)), np.array((-0.02e3,-0.009e3)), 2e30) #re-initializing
+mercury = CelestialBody('Mercury', AU*np.array((3.54e-1,-6.78e-2)), np.array((0.38e3,50e3)), 3.3e23) #re-initializing
+venus = CelestialBody('Venus', AU*np.array((-2.4e-1,6.85e-1)), np.array((-33e3,-11.6e3)), 4.9e24) #re-initializing
+earth = CelestialBody('Earth', AU*np.array((9.05e-1,4.09e-1)), np.array((-12.5e3,27.2e3)), 6e24) #re-initializing
+mars = CelestialBody('Mars', AU*np.array((1.3,5.52e-1)), np.array((-8.4e3,24.4e3)), 6.6e23) #re-initializing
+jupiter = CelestialBody('Jupiter', AU*np.array((2.56,-4.42)), np.array((11.1e3,7.17e3)), 1.9e27)
+saturn = CelestialBody('Saturn', AU*np.array((5.15,-8.56)), np.array((7.74e3,4.95e3)), 5.5e26) #re-initializing
+uranus = CelestialBody('Uranus', AU*np.array((1.55e1,1.22e1)), np.array((-4.26e3,5e3)), 8.8e25) #re-initializing
+neptune = CelestialBody('Neptune', AU*np.array((2.94e1,-5.46)), np.array((0.96e3,5.38e3)), 1.03e26) #re-initializing
+#pluto = CelestialBody('Pluto', AU*np.array((1.38e1,-3.12e1)), np.array((5.11e3,1.04e3)), 1.3e22) #re-initializing
+bodies = [sun,mercury,venus,earth,mars,jupiter,saturn,uranus,neptune]
+CelestialBody.VerletMultiBody(bodies, 200*365, 24*3600)
+plt.figure(figsize=(10,10))
+for body in bodies:
+    plt.plot(body.p[:,0]/AU, body.p[:,1]/AU, label='%s' %(body.name))
+plt.xlabel('x position [AU]')
+plt.ylabel('y position [AU]')
+plt.title('Solar System Orbits over 200 years')
+plt.legend(loc='upper left')
+plt.show()
+
+#i
+
+sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30) #re-initializing
+mercury = CelestialBody('Mercury', AU*np.array((0.3075,0)), np.array((0,58.97e3)), 3.3e23) #re-initializing
+mercury.Verlet(sun,100*365,24*3600, rel=True)
+plt.plot(mercury.p[:,0]/AU,mercury.p[:,1]/AU)
+plt.show()
