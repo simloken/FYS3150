@@ -211,7 +211,7 @@ plt.ylabel('Energy [J]')
 plt.legend()
 plt.show()
 
-#e - NOT DONE
+#e - NOT DONE?
 betas = np.linspace(2,3,11)
 years = 10
 bOrbits = np.zeros((len(betas),years*365,2))
@@ -247,14 +247,12 @@ plt.show()
 
 
 
-#g
+#g - DONE
 earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24) #re-initializing
 sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30) #re-initializing
 jupiter = CelestialBody('Jupiter', np.array((0,5.2*AU)), np.array((13e3,0)), 1.9e27)
 bodies= [earth, jupiter, sun]
 CelestialBody.VerletMultiBody(bodies, 30*365, 24*3600)
-test1 = earth.p
-test2 = jupiter.p
 plt.plot(earth.p[:,0]/AU,earth.p[:,1]/AU, label='Earth')
 plt.plot(jupiter.p[:,0]/AU, jupiter.p[:,1]/AU, label='Jupiter')
 plt.plot(sun.p[:,0]/AU, sun.p[:,1]/AU, label='Sun')
@@ -263,3 +261,15 @@ plt.ylabel('y position [AU]')
 plt.title('Earth and Jupiters Orbit with real Jupiter mass over 30 years')
 plt.legend()
 plt.show()
+
+#h
+sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30) #re-initializing
+#mercury = CelestialBody('Mercury', np.array((0,0)), np.array((0,0)), 3.3e23) #re-initializing
+#venus = CelestialBody('Venus', np.array((0,0)), np.array((0,0)), 4.9e24) #re-initializing
+earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24) #re-initializing
+#mars = CelestialBody('Mars', np.array((0,0)), np.array((0,0)), 6.6e23) #re-initializing
+jupiter = CelestialBody('Jupiter', np.array((0,5.2*AU)), np.array((13e3,0)), 1.9e27)
+#saturn = CelestialBody('Saturn', np.array((0,0)), np.array((0,0)), 5.5e26) #re-initializing
+#uranus = CelestialBody('Uranus', np.array((0,0)), np.array((0,0)), 8.8e25) #re-initializing
+#neptune = CelestialBody('Neptune', np.array((0,0)), np.array((0,0)), 1.03e26) #re-initializing
+#pluto = CelestialBody('Pluto', np.array((0,0)), np.array((0,0)), 1.3e22) #re-initializing
