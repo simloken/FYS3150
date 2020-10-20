@@ -80,7 +80,7 @@ class CelestialBody:
         if rel == False:
             Fx,Fy = self.force(primary, beta) #calculating the first acceleration here
         else:
-            Fx,Fy = self.ForceRelativistic(primary,beta, v[0])
+            Fx,Fy = self.ForceRelativistic(primary,beta, v[0]) #relativistic force for i
         ax, ay = Fx/self.mass, Fy/self.mass #this saves us upwards of 50%+ runtime
         a = np.array((ax,ay)) #as we don't have to calculate acceleration twice in-loop
         for i in range(N-1):
@@ -180,6 +180,47 @@ class CelestialBody:
         Fx = F*np.cos(theta); Fy = F*np.sin(theta)
         return Fx, Fy
     
+    def VerletPerihelion(self, primary, dt, beta=2, rel=True):
+        N = 1000
+        v = np.zeros((N,2)); p = np.zeros((N,2))
+        v[0] = self.v0; p[0] = self.r0
+        dt2 = 0.5*dt*dt #save FLOPs
+        if rel == False:
+            Fx,Fy = self.force(primary, beta) #calculating the first acceleration here
+        else:
+            Fx,Fy = self.ForceRelativistic(primary,beta, v[0]) #relativistic force for i
+        ax, ay = Fx/self.mass, Fy/self.mass #this saves us upwards of 50%+ runtime
+        a = np.array((ax,ay)) #as we don't have to calculate acceleration twice in-loop
+        i = 0
+        j = 0
+        k = 0
+        while k == 0:
+            p[i+1] = p[i] + v[i]*dt+a*dt2
+            p1 = np.linalg.norm(p[i])
+            p2 = np.linalg.norm(p[i+1])
+            
+            if p2 < p1 and j == 0: #sinking
+                j = 1
+                print('Sinking')
+            if j == 1:
+                if p2 > p1: #increasing
+                    print('Solution found')
+                    return p[i]
+                    k = 1
+                    
+            self.r0 = p[i+1]
+            if rel == False:
+                Fx,Fy = self.force(primary,beta)
+            else:
+                Fx,Fy = self.ForceRelativistic(primary,beta, v[i])
+            ax, ay = Fx/self.mass, Fy/self.mass
+            a2 = a #old a
+            a = np.array((ax,ay)) #forward a
+            v[i+1] = v[i] + dt*((a+a2)/2)
+            i += 1
+        self.p = p
+        self.v = v
+        self.method = 'Verlet'
 #b - DONE    
 G = 6.67e-11; AU = 149.6e9
 earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24)
@@ -327,10 +368,19 @@ plt.title('Solar System Orbits over 200 years')
 plt.legend(loc='upper left')
 plt.show()
 
-#i
+#i - NOT DONE
 
 sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30) #re-initializing
-mercury = CelestialBody('Mercury', AU*np.array((0.3075,0)), np.array((0,58.97e3)), 3.3e23) #re-initializing
+mercury = CelestialBody('Mercury', AU*np.array((0,0.3075)), np.array((58.97e3,0)), 3.3e23) #re-initializing
 mercury.Verlet(sun,100*365,24*3600, rel=True)
-plt.plot(mercury.p[:,0]/AU,mercury.p[:,1]/AU)
-plt.show()
+ps = mercury.p
+plows = np.zeros(len(ps))
+for i in range(len(ps)):
+    plows[i] = np.linalg.norm(ps[i])
+mini = np.argmin(plows[1:100])
+thetap1 = np.arctan(ps[mini,1]/ps[mini,0])
+mercury = CelestialBody('Mercury', np.array((mercury.p[100*365-1,0],mercury.p[100*365-1,1])),
+                        np.array((mercury.v[100*365-1,0],mercury.v[100*365-1,1])), 3.3e23) #re-initializing
+century_p = mercury.VerletPerihelion(sun,24*3600)
+thetap2 = np.arctan(century_p[1]/century_p[0])
+print(thetap1, thetap2)
