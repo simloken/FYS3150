@@ -2,6 +2,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from math import atan2
+"""
+Solves task 3a
+Generates a 2d-plot of the earth orbiting the sun with initial conditions
+r_x = AU, v_y = 30e3
+Uses two different methods for solving ODEs, Eulers Forward and Verlet Velocity
+then plots them both.
+This function is imported into main.py, so either call it from the console
+here or there.
+"""
 def proj_3a():
     M_earth = 6e24
     M_sun = 2e30
@@ -48,10 +57,11 @@ def proj_3a():
         a2 = a #old a
         a = np.array((ax,ay)) #forward a
         v2[i+1] = v2[i] + dt*((a+a2)/2)
-    
+    plt.figure()
     plt.plot(x[:,0]/AU,x[:,1]/AU, label='Earth w/ Forward Euler')
     plt.plot(x2[:,0]/AU,x2[:,1]/AU, label='Earth w/ Verlet Method')
     plt.legend()
+    plt.title('Earths orbit around the Sun over one year\nusing two different methods (Not OOP)')
     plt.xlabel('x position [AU]')
     plt.ylabel('y position [AU]')
     plt.show()

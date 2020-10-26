@@ -4,6 +4,13 @@ import matplotlib.pyplot as plt
 from math import atan2
 from noclass import proj_3a
 import time
+"""
+The main class used in essentially all of project 3.
+Initializes given initial coordinates, initial velocity, mass and a name for our object
+Is only compatible with two dimensions, though this could easily be modified.
+Ensures no wrong inputs are given, like too large an array for position, and
+that all values are the correct type.
+"""
 class CelestialBody:
     def __init__(self, name, r0, v0, mass):
         
@@ -45,7 +52,12 @@ class CelestialBody:
         self.method = 0
         self.a = 0
         self.a2 = 0
-        
+    
+    """
+    Basic force calculation using the supplied graviational force equation.
+    Takes three inputs, the two bodies the force is acting between and a beta
+    value which is passed from it's corresponding solving method (Verlet/Euler).
+    """    
     def force(self, primary, beta): #finds the x-and y-force on self exerted by primary
         G = 6.67e-11
         sx, sy = self.r0[0], self.r0[1] #self position  
@@ -58,7 +70,13 @@ class CelestialBody:
         Fx = F*np.cos(theta); Fy = F*np.sin(theta)
         return Fx, Fy
         
-    
+    """
+    Takes the two bodies, amount of steps N and our timestep dt. This is also
+    where beta is defined, which defaults to beta=2.
+    Solves our system using the Forward Euler method
+    When it's done, it assigns two arrays (position and velocity) to the body 
+    in which we're plotting which we can then retrieve from our object to plot
+    """
     def fEuler(self, primary, N,dt, beta=2):
         v = np.zeros((N,2)); p = np.zeros((N,2))
         v[0] = self.v0; p[0] = self.r0
@@ -73,7 +91,14 @@ class CelestialBody:
         self.v = v
         self.method = 'Forward Euler'
 
-
+    """
+    Takes two bodies, amount of steps N and timestep dt.
+    Additionally takes the previously discussed beta value and a boolean rel.
+    Rel dictates whether or not we want to make relativistic corrections to our
+    force function, and is only used in 3i
+    Solves using the Verlet Velocity Method, and assigns two arrays onto our
+    object which we can use to plot.
+    """
     def Verlet(self, primary, N, dt, beta=2, rel=False):
         v = np.zeros((N,2)); p = np.zeros((N,2))
         v[0] = self.v0; p[0] = self.r0
@@ -98,7 +123,13 @@ class CelestialBody:
         self.p = p
         self.v = v
         self.method = 'Verlet'
-      
+     
+    """
+    Takes two bodies, amount of steps N and timestep dt and the value beta
+    Solves our system, same as before using the Verlet method.
+    Does not assign arrays onto our object, instead returns three arrays:
+    U: Potential Energy, K: Kinetic Energy and ETOT: Total Energy.
+    """
     def Energies(self,primary,N,dt, beta=2):
         G = 6.67e-11
         sx, sy = self.r0[0], self.r0[1] #self position  
@@ -129,7 +160,12 @@ class CelestialBody:
             K[i+1] = 0.5*self.mass*np.linalg.norm(v[i+1])**2
             ETOT[i+1] = U[i+1]+K[i+1]
         return U, K, ETOT
-    
+    """
+    Takes two bodies, amount of steps N and timestep dt and the value beta
+    Solves our system, same as before using the Verlet method.
+    Does not assign arrays onto our object, instead returns an array l.
+    l: Angular Momentum
+    """
     def AngularMom(self,primary,N,dt,beta=2):
         v = np.zeros((N,2)); p = np.zeros((N,2)); l = np.zeros(N)
         v[0] = self.v0; p[0] = self.r0
@@ -150,7 +186,11 @@ class CelestialBody:
             r = np.array((p[i+1,0], p[i+1,1])); mom = v[i+1]*self.mass
             l[i+1] = np.cross(r,mom)
         return l
-    
+    """
+    Takes an array of all celestialbodies in our system and calculates gravitational
+    force between them. Also takes a value beta.
+    Makes sure not to calculate graviational force onto itself.
+    """
     def ForceMultiBody(self, bodies, beta): #finds the x-and y-force on self exerted by primary
         G = 6.67e-11
         TFx = 0; TFy = 0
@@ -167,7 +207,14 @@ class CelestialBody:
             Fx = F*np.cos(theta); Fy = F*np.sin(theta)
             TFx += Fx; TFy += Fy
         return TFx, TFy
-    
+    """
+    The corresponding solver for the multibody problem. Takes an array of all celestial bodies.
+    Loops through them all and calculates all their movement using the Verlet Velocity method.
+    The initial for-loop is used to create arrays, which are then filled in the
+    second for-loop.
+    Returns nothing, but assigns two arrays onto each celestial body which we
+    can use to plot their orbits.
+    """
     def VerletMultiBody(bodies, N, dt, beta=2): #not DONE
         dt2 = 0.5*dt*dt #save FLOPs
         for body in bodies:
@@ -186,7 +233,12 @@ class CelestialBody:
                 body.a = np.array((ax,ay)) #forward a
                 body.v[i+1] = body.v[i] + dt*((body.a+body.a2)/2)
             body.method = 'Verlet'
-
+    """
+    Takes two acting bodies, a beta value and a velocity vector.
+    This is the relativistic correction of the force which is called if and only
+    if the boolean rel=True.
+    Returns x-and y-forces respectively
+    """
     def ForceRelativistic(self, primary, beta, vVec): #finds the x-and y-force on self exerted by primary
         G = 6.67e-11
         sx, sy = self.r0[0], self.r0[1] #self position  
@@ -201,9 +253,17 @@ class CelestialBody:
         theta = atan2(ry,rx)
         Fx = F*np.cos(theta); Fy = F*np.sin(theta)
         return Fx, Fy
-    
+    """
+    A special verlet velocity method to be called AFTER one century has passed
+    for Mercury's orbit.
+    Keeps letting Mercury orbit until it's at the Perihelion, fromwhich it returns
+    the coordinates.
+    These can then be used to check if we have moved 42 arcseconds from our initial
+    position when at the Perihelion
+    """
     def VerletPerihelion(self, primary, dt, tol, beta=2, rel=True):
-        N = 1000; AU = 149.6e9
+        AU = 149.6e9
+        N = 100000
         v = np.zeros((N,2)); p = np.zeros((N,2))
         v[0] = self.v0; p[0] = self.r0
         dt2 = 0.5*dt*dt #save FLOPs
@@ -213,20 +273,26 @@ class CelestialBody:
             Fx,Fy = self.ForceRelativistic(primary,beta, v[0]) #relativistic force for i
         ax, ay = Fx/self.mass, Fy/self.mass #this saves us upwards of 50%+ runtime
         a = np.array((ax,ay)) #as we don't have to calculate acceleration twice in-loop
-        k = 0
+        pp = np.linalg.norm(p[0])
+        if pp - 0.3075*AU < tol:
+            self.p = p; self.v = v
+            return p[0], 0
+        oldp = pp
         i = 0
-        resets = 0
-        rperi = 0.3075*AU
-        radperi = np.pi/2
+        j = 0
+        k = 0
         while k == 0:
             p[i+1] = p[i] + v[i]*dt+a*dt2
-            rcheck = np.linalg.norm(p[i+1])
-            radcheck = np.arctan(p[i+1][1]/p[i+1][0])
-            if np.isclose(rcheck,rperi, rtol=tol) == True:
-                print(radcheck)
-                if np.isclose(radcheck,radperi, rtol=1e-3) == True:
-                    return p[i+1], radcheck, resets
+            pp = np.linalg.norm(p[i+1])
+            if j == 1 and pp > oldp: #next point is not closer than previous
+                self.p = p; self.v = v
+                return p[i+1], i
+            else:
+                j = 0
+            if pp - 0.3075*AU < tol and j == 0: #within acceptable range
+                        j = 1
             self.r0 = p[i+1]
+            oldp = pp
             if rel == False:
                 Fx,Fy = self.force(primary,beta)
             else:
@@ -236,15 +302,14 @@ class CelestialBody:
             a = np.array((ax,ay)) #forward a
             v[i+1] = v[i] + dt*((a+a2)/2)
             i += 1
-            if i == 999: #frees up arrays
-                temp1 = v[i]; temp2 = p[i]
-                v = np.zeros((N,2)); p = np.zeros((N,2))
-                v[0] = temp1; p[0] = temp2
-                i = 0
-                resets += 1
         
-#b - DONE    
-                
+ 
+"""
+Solves task 3b
+Essentially the same as 3a, except now using OOP.
+Additionally prints runtimes for the Forward Euler Method and Velocity Verlet Method respectively
+Call the function from the console.
+"""         
 def proj_3b():
     AU = 149.6e9
     earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24)
@@ -267,18 +332,52 @@ def proj_3b():
     print('Time elapsed for Verlet Method:', t2)
     
     
-    
+    plt.figure()
     plt.plot(E.p[:,0],E.p[:,1], label='%s using %s method' %(E.name, E.method))
     plt.plot(V.p[:,0],V.p[:,1], label='%s using %s method' %(V.name, V.method))
     plt.xlabel('x position [AU]')
     plt.ylabel('y position [AU]')
-    plt.title('Earths orbit around the sun')
+    plt.title('Earths orbit around the Sun over one year\nusing two different methods (OOP)')
     plt.legend()
     plt.show()
 
-#c - DONE
+"""
+Solves task 3c
+Checks the stability of our Velocity Verlet method for different timesteps
+Plots the potential, kinetic and total energy of Earth over one year
+Additionally plots a secondary plot with just the total energy by itself
+Call the function from the console
+"""
 def proj_3c():
     AU = 149.6e9
+    steps = [24,6,1,120]; j = 0
+    fig, axs = plt.subplots(2,2)
+    fig.set_figheight(10)
+    fig.set_figwidth(10)
+    sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30)
+    for i in steps:
+        earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24) #re-initializing
+        earth.Verlet(sun,int(365*24/i),i*3600)
+        p = earth.p
+        if j == 0:
+            axs[0,0].plot(p[:,0]/AU,p[:,1]/AU)
+            axs[0,0].set_title('N = {}{} {}  $\Delta$t = {}{}' .format(int(365*24/i),' days','          ', i,' hours'), size=12)
+        elif j == 1:
+            axs[0,1].plot(p[:,0]/AU,p[:,1]/AU)
+            axs[0,1].set_title('N = {}{} {}  $\Delta$t = {}{}' .format(int(365*24/i),' days','          ', i,' hours'), size=12)
+        elif j == 2:
+            axs[1,0].plot(p[:,0]/AU,p[:,1]/AU)
+            axs[1,0].set_title('N = {}{} {}  $\Delta$t = {}{}' .format(int(365*24/i),' days','          ', i,' hours'), size=12)
+        elif j == 3:
+            axs[1,1].plot(p[:,0]/AU,p[:,1]/AU)
+            axs[1,1].set_title('N = {}{} {}  $\Delta$t = {}{}' .format(int(365*24/i),' days','          ', i,' hours'), size=12)
+        j += 1
+    for ax in axs.flat:
+        ax.set(xlabel='x position [AU]', ylabel='y position [AU]')
+        ax.label_outer()
+    fig.suptitle('Stability of our solution given different timesteps', fontsize=18, y = 0.93)    
+    plt.show()
+    
     earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24) #re-initializing
     sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30)
     U, K, ETOT = earth.Energies(sun,365,24*3600)
@@ -293,31 +392,45 @@ def proj_3c():
     plt.legend()
     plt.show()
     plt.figure()
-    plt.title('Total Energy of %s in a complete orbit' %(earth.name))
+    plt.title('Total Energy of %s in a complete orbit' %(earth.name), pad=20)
     plt.plot(range(len(ETOT)),ETOT, label='Total Energy')
     plt.xlabel('Days')
     plt.ylabel('Energy [J]')
     plt.legend()
     plt.show()
 
-#d - DONE
+"""
+Solves task 3d
+Plots the angular momentum of Earth over one year
+Call the function from the console
+"""
 def proj_3d():
     AU = 149.6e9
     earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24) #re-initializing
     sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30)
     l = earth.AngularMom(sun,365,24*3600)
+    plt.figure()
     plt.plot(range(len(l)),l)
     plt.xlabel('Time [Days]')
     plt.ylabel('Angular Momentum [kg m^2/s]')
-    plt.title('Angular Momentum for complete orbit values of Beta')
+    plt.title('Angular Momentum for a complete orbit', pad=20)
     plt.show()
 
-#e - NOT DONE?
+"""
+Solves task 3e
+Firstly plots orbits given different values of beta over 50 years
+Secondly plots potential, kinetic and total energy of a Sun-Earth system given 
+an elliptical orbit over one year
+Thirdly plots the angular momentum of an elliptical orbit over one year.
+Lastly, plots the effects of differing beta values on total energy and 
+angular momentum over one year.
+Call the function from the console
+"""
     
 def proj_3e():
     AU = 149.6e9
     betas = np.linspace(2,3,11)
-    years = 50
+    years = 25
     bOrbits = np.zeros((len(betas),years*365,2))
     sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30)
     j = 0
@@ -332,16 +445,15 @@ def proj_3e():
         b = betas[i]
         plt.plot(bOrbits[i,:,0]/AU, bOrbits[i,:,1]/AU, label='B = %.1f' %(b))
     plt.legend()
+    plt.title('Earths orbit given different values of Beta over 25 years', pad=20)
     plt.xlabel('x position [AU]')
     plt.ylabel('y position [AU]')
     plt.show()
     
-    plt.figure()
-    
     earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,23.72e3)), 6e24) #re-initializing
     U, K, ETOT = earth.Energies(sun,365,24*3600)
     plt.figure()
-    plt.title('All energies of %s in a complete elliptical orbit' %(earth.name))
+    plt.title('All energies of %s in a complete elliptical orbit' %(earth.name), pad=20)
     plt.plot(range(len(ETOT)),U, label='Potential Energy')
     plt.plot(range(len(ETOT)),K, label='Kinetic Energy')
     plt.plot(range(len(ETOT)),ETOT, label='Total Energy')
@@ -351,7 +463,7 @@ def proj_3e():
     plt.show()
     plt.figure()
     
-    plt.title('Total Energy of %s in a complete elliptical orbit' %(earth.name))
+    plt.title('Total Energy of %s in a complete elliptical orbit' %(earth.name), pad=20)
     plt.plot(range(len(ETOT)),ETOT, label='Total Energy')
     plt.xlabel('Time [Days]')
     plt.ylabel('Energy [J]')
@@ -365,7 +477,7 @@ def proj_3e():
     plt.plot(range(len(l)),l)
     plt.xlabel('Time [Days]')
     plt.ylabel('Angular Momentum [kg m^2/s]')
-    plt.title('Angular Momentum for a complete elliptical orbit')
+    plt.title('Angular Momentum for a complete elliptical orbit', pad=20)
     plt.show()
     plt.figure()
     
@@ -396,30 +508,43 @@ def proj_3e():
     plt.legend()
     plt.xlabel('Time [Days]')
     plt.ylabel('Angular Momentum [kg m^2/s]')
-    plt.title('Angular Momentum for different values of Beta')
+    plt.title('Angular Momentum for different values of Beta', pad=20)
     plt.show()
     
-#f - DONE
+"""
+Solves task 3f
+Calculates the theoretical escape velocity.
+After this, creates a plot of Earths Orbit around the sun given intial velocities
+from 35000 m/s to 45000 m/s.
+Examine whether theoretical is the same as numercial
+Call the function from the console
+"""
 def proj_3f():
     G = 6.67e-11; AU = 149.6e9
     sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30)
     expected_escape_vel = np.sqrt(2*G*sun.mass/AU)
-    print(expected_escape_vel)
+    print('Expected Escape Velocity:', expected_escape_vel)
     vels = np.linspace(35e3,45e3,11)
     plt.figure(figsize=(7.2,7.2))
     for i in vels:
         earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,i)), 6e24) #re-initializing for each loop
-        earth.Verlet(sun,50*365,24*3600) #orbit over 50 years
+        earth.Verlet(sun,75*365,24*3600) #orbit over 75 years
         plt.plot(earth.p[:,0]/AU,earth.p[:,1]/AU, label='Orbit for intial velocity %.0f m/s' %(i))
     plt.legend(loc='upper right')
     plt.xlabel('x position [AU]')
     plt.ylabel('y position [AU]')
-    plt.title('Earths orbit around the sun for different initial velocities')
+    plt.title('Earths orbit around the sun for different initial velocities over 75 years')
     plt.show()
 
 
 
-#g - DONE
+"""
+Solves task 3g
+Plots three different plots of our three body system with the Earth, the Sun and Jupiter.
+The first plot is using real values, the second Jupiter has 10x its real mass 
+and in the third Jupiter has 1000x its real mass
+Call the function from the console
+"""
 def proj_3g(): 
     AU = 149.6e9
     earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24) #re-initializing
@@ -427,6 +552,7 @@ def proj_3g():
     jupiter = CelestialBody('Jupiter', np.array((0,5.2*AU)), np.array((13e3,0)), 1.9e27)
     bodies= [earth, jupiter, sun]
     CelestialBody.VerletMultiBody(bodies, 30*365, 24*3600)
+    plt.figure()
     plt.plot(earth.p[:,0]/AU,earth.p[:,1]/AU, label='Earth')
     plt.plot(jupiter.p[:,0]/AU, jupiter.p[:,1]/AU, label='Jupiter')
     plt.plot(sun.p[:,0]/AU, sun.p[:,1]/AU, label='Sun')
@@ -436,6 +562,7 @@ def proj_3g():
     plt.legend()
     plt.show()
     
+    plt.figure()
     earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24) #re-initializing
     sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30) #re-initializing
     jupiter = CelestialBody('Jupiter', np.array((0,5.2*AU)), np.array((13e3,0)), 10*1.9e27)
@@ -450,6 +577,7 @@ def proj_3g():
     plt.legend()
     plt.show()
     
+    plt.figure()
     earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,30e3)), 6e24) #re-initializing
     sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30) #re-initializing
     jupiter = CelestialBody('Jupiter', np.array((0,5.2*AU)), np.array((13e3,0)), 1000*1.9e27)
@@ -464,7 +592,20 @@ def proj_3g():
     plt.legend()
     plt.show()
 
-#h
+"""
+Solves task 3h
+Creates two plots, the first one is a fifty year plot of our three-body system
+where the Sun has had it's initial conditions defined so as to make the total
+momentum of the system zero. Additionally the sun has been moved so that the
+center of mass in the system is (0,0). Compare the stability of this system to
+the "uncorrected" system we create and plot in 3g
+The second plot is a full plot of our solar system with all 8 planets over a
+time period of 200 years.
+Pluto is commented but can be uncommented and included in the bodies list to plot
+all 8 planets + Pluto, but be warned that Pluto's orbit time significantly deviated
+from it's theoretical orbit time, and was therefore not included.
+Call the function from the console
+"""
 def proj_3h():
     AU = 149.6e9
     comx = (1.9e27*5.2*AU)/(2e30+6e24+1.9e27)
@@ -474,6 +615,7 @@ def proj_3h():
     jupiter = CelestialBody('Jupiter', np.array((0,5.2*AU)), np.array((13e3,0)), 1.9e27)
     bodies = [earth,jupiter, sun]
     CelestialBody.VerletMultiBody(bodies, 50*365, 24*3600)
+    plt.figure()
     plt.plot(earth.p[:,0]/AU,earth.p[:,1]/AU, label='Earth')
     plt.plot(jupiter.p[:,0]/AU, jupiter.p[:,1]/AU, label='Jupiter')
     plt.plot(sun.p[:,0]/AU, sun.p[:,1]/AU, label='Sun')
@@ -501,7 +643,7 @@ def proj_3h():
     uranus = CelestialBody('Uranus', AU*np.array((1.55e1,1.22e1)), np.array((-4.26e3,5e3)), 8.8e25) #re-initializing
     neptune = CelestialBody('Neptune', AU*np.array((2.94e1,-5.46)), np.array((0.96e3,5.38e3)), 1.03e26) #re-initializing
     #pluto = CelestialBody('Pluto', AU*np.array((1.38e1,-3.12e1)), np.array((5.11e3,1.04e3)), 1.3e22) #re-initializing
-    bodies = [sun,mercury,venus,earth,mars,jupiter,saturn,uranus,neptune]
+    bodies = [sun,mercury,venus,earth,mars,jupiter,saturn,uranus,neptune] #uncomment above and add pluto in this list to include it in the plot
     CelestialBody.VerletMultiBody(bodies, 200*365, 24*3600)
     plt.figure(figsize=(10,10))
     for body in bodies:
@@ -513,26 +655,92 @@ def proj_3h():
     plt.show()
 
 
-#i - NOT DONE - SOMETHING WRONG WITH THE CALCULATION - ORBIT IS NOT CORRECT?
-    
+"""
+Solves task 3i
+First let's our Mercury-Sun system run for 100 years with relativistic force.
+Next, let's Mercury keep orbiting until the next time it's at the Perihelion.
+It then returns these coordinates which we can use to see the Perihelion has 
+moved the theoretical 43 arcseconds over a century.
+Call the function from the console
+""" 
 def proj_3i():
     AU = 149.6e9
-    sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30) #re-initializing
-    mercury = CelestialBody('Mercury', AU*np.array((0,0.3075)), np.array((59e3,0)), 3.3e23) #re-initializing
+    sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 1.989e30) #re-initializing
+    mercury = CelestialBody('Mercury', AU*np.array((0.3075,0)), np.array((0,58970.74164)), 3.285e23) #re-initializing
+    
     mercury.Verlet(sun,100*365,24*3600, rel=True)
     ps = mercury.p
-    plows = np.zeros(len(ps))
-    for i in range(len(ps)):
-        plows[i] = np.linalg.norm(ps[i])
-    plt.grid()
-    plt.plot(range(len(plows)),plows/AU)
-    plt.ylim(0.30749, 0.3076)
-    plt.show()
-    mini = np.argmin(plows[1:100])
-    thetap1 = np.pi/2
+    radchnge = np.arctan2(ps[87,1], ps[87,0]) #find change per year
     mercury = CelestialBody('Mercury', np.array((mercury.p[100*365-1,0],mercury.p[100*365-1,1])),
-                            np.array((mercury.v[100*365-1,0],mercury.v[100*365-1,1])), 3.3e23) #re-initializing
-    century_p, thetap2, rs = mercury.VerletPerihelion(sun,24*3600, 1e-5)
-    diff = thetap1-thetap2
-    print(diff)
+                            np.array((mercury.v[100*365-1,0],mercury.v[100*365-1,1])), 3.285e23) #re-initializing from where we left off
+    pos, hours = mercury.VerletPerihelion(sun,3600, 1e-20)
+    pos = pos/AU
+    radtot = (36500+(hours)/24)/88 * radchnge #find change over a century + extra days
+    while abs(radtot) > 2*np.pi: #reign in rad to be in [-2pi, 2pi]
+        if radtot > 0:
+            radtot -= 2*np.pi
+        elif radtot < 0:
+            radtot += 2*np.pi
+            
+    lst = []
+    for i in range(len(mercury.p)): #getting rid of all zeros in our array
+        if np.linalg.norm(mercury.p[i]) != 0:
+            lst.append(mercury.p[i])
+    ps2 = np.array(lst)
     
+    final = 72 #plot only the final 72 values of ps
+    
+    plt.figure()
+    plt.scatter(0,0,s=15, color='r', label='Sun')
+    plt.plot(ps[len(ps)-final:,0]/AU,ps[len(ps)-final:,1]/AU, label='Mercury', color='g')
+    plt.legend(loc='upper right')
+    plt.plot(ps2[:,0]/AU,ps2[:,1]/AU,'-.',color='g', label='Mercury post 100 years')
+    plt.plot([ps2[len(ps2)-1,0]/AU,0],[ps2[len(ps2)-1,1]/AU,0], ':', color='r', label='r')
+    plt.legend(loc='lower right')
+    plt.xlabel('x position [AU]')
+    plt.ylabel('y position [AU]')
+    plt.title('Mercurys orbit over %i days' %(final+hours/24))
+    plt.show()
+    
+    
+    theta = np.arctan2(pos[1],pos[0]) #current angle
+    real_deg = theta + radtot #find how much the current angle has deviated from expected value
+    print('We find the angle to have changed by %.3f"' %(real_deg/(np.pi/648000)))
+    
+"""
+Solves the entire project in one function.
+Allows skipping of 3a as it is essentially the same as 3b, although not using OOP.
+Beware that this creates a lot of plots, I'd personally recommend calling
+functions one by one.
+Call the function from the console
+"""
+def proj_3_full():
+    yn = input(str('Would you like to skip 3a? [Y/N] \n'))
+    if yn.lower() == 'y':
+        print('--Starting 3a--')
+        proj_3a()
+        print('--3a finished--')
+    print('--Starting 3b--')
+    proj_3b()
+    print('--3b finished--')
+    print('--Starting 3c--')
+    proj_3c()
+    print('--3c finished--')
+    print('--Starting 3d--')
+    proj_3d()
+    print('--3d finished--')
+    print('--Starting 3e--')
+    proj_3e()
+    print('--3e finished--')
+    print('--Starting 3f--')
+    proj_3f()
+    print('--3f finished--')
+    print('--Starting 3g--')
+    proj_3g()
+    print('--3g finished--')
+    print('--Starting 3h--')
+    proj_3h()
+    print('--3h finished--')
+    print('--Starting 3i--')
+    proj_3i()
+    print('--3i finished--')
