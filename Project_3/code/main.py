@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import matplotlib.pyplot as plt
-from math import atan2
 from noclass import proj_3a
 import time
 """
@@ -66,7 +65,7 @@ class CelestialBody:
         ry = py-sy
         r = np.linalg.norm((rx,ry)) #find radius from planet and it's primary
         F = G*self.mass*primary.mass/(r**beta) #force between planet and it's primary
-        theta = atan2(ry,rx)
+        theta = np.arctan2(ry,rx)
         Fx = F*np.cos(theta); Fy = F*np.sin(theta)
         return Fx, Fy
         
@@ -203,7 +202,7 @@ class CelestialBody:
             ry = py-sy
             r = np.linalg.norm((rx,ry)) #find radius from planet and it's primary
             F = G*self.mass*primary.mass/(r**beta) #force between planet and it's primary
-            theta = atan2(ry,rx)
+            theta = np.arctan2(ry,rx)
             Fx = F*np.cos(theta); Fy = F*np.sin(theta)
             TFx += Fx; TFy += Fy
         return TFx, TFy
@@ -250,7 +249,7 @@ class CelestialBody:
         cc = 3e8**2
         r = np.linalg.norm((rx,ry)) #find radius from planet and it's primary
         F = (G*self.mass*primary.mass/(r**beta))*(1+((3*l**2)/(r**2*cc))) #force between planet and it's primary
-        theta = atan2(ry,rx)
+        theta = np.arctan2(ry,rx)
         Fx = F*np.cos(theta); Fy = F*np.sin(theta)
         return Fx, Fy
     """
@@ -429,7 +428,7 @@ Call the function from the console
     
 def proj_3e():
     AU = 149.6e9
-    betas = np.linspace(2,3,11)
+    betas = np.linspace(2,2.0275,12)
     years = 25
     bOrbits = np.zeros((len(betas),years*365,2))
     sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30)
@@ -440,11 +439,11 @@ def proj_3e():
         bOrbits[j] = earth.p
         j += 1
     bOrbits = bOrbits/AU
-    plt.figure()
+    plt.figure(figsize=(7,7))
     for i in range(len(betas)):
         b = betas[i]
-        plt.plot(bOrbits[i,:,0]/AU, bOrbits[i,:,1]/AU, label='B = %.1f' %(b))
-    plt.legend()
+        plt.plot(bOrbits[i,:,0]/AU, bOrbits[i,:,1]/AU, label='B = %.4f' %(b))
+    plt.legend(loc='upper right')
     plt.title('Earths orbit given different values of Beta over 25 years', pad=20)
     plt.xlabel('x position [AU]')
     plt.ylabel('y position [AU]')
@@ -479,17 +478,17 @@ def proj_3e():
     plt.ylabel('Angular Momentum [kg m^2/s]')
     plt.title('Angular Momentum for a complete elliptical orbit', pad=20)
     plt.show()
-    plt.figure()
+    plt.figure(figsize=(7,7))
     
     j = 0
-    energies = np.zeros((len(betas),365))
+    energies = np.zeros((len(betas),365*3))
     for i in betas:
         earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,23.72e3)), 6e24) #re-initializing for each loop
-        U, K, energies[j] = earth.Energies(sun,365,24*3600,i)
+        U, K, energies[j] = earth.Energies(sun,3*365,24*3600,i)
         j += 1
     for i in range(len(betas)):
         b = betas[i]
-        plt.plot(range(365), energies[i], label='B = %.1f' %(b))
+        plt.plot(range(3*365), energies[i], label='B = %.4f' %(b))
     plt.legend()
     plt.xlabel('Time [Days]')
     plt.ylabel('Energy [J]')
@@ -497,14 +496,14 @@ def proj_3e():
     plt.show()
     j = 0
     plt.figure()
-    AngMom = np.zeros((len(betas),365))
+    AngMom = np.zeros((len(betas),365*3))
     for i in betas:
         earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,23.72e3)), 6e24) #re-initializing for each loop
-        AngMom[j] = earth.AngularMom(sun,365,24*3600,i)
+        AngMom[j] = earth.AngularMom(sun,3*365,24*3600,i)
         j += 1
     for i in range(len(betas)):
         b = betas[i]
-        plt.plot(range(365), AngMom[i], label='B = %.1f' %(b))
+        plt.plot(range(3*365), AngMom[i], label='B = %.4f' %(b))
     plt.legend()
     plt.xlabel('Time [Days]')
     plt.ylabel('Angular Momentum [kg m^2/s]')
