@@ -666,14 +666,14 @@ Call the function from the console
 """ 
 def proj_3i():
     AU = 149.6e9
-    sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 1.989e30) #re-initializing
-    mercury = CelestialBody('Mercury', AU*np.array((0.3075,0)), np.array((0,58970.74164)), 3.285e23) #re-initializing
+    sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30) #re-initializing
+    mercury = CelestialBody('Mercury', AU*np.array((0.3075,0)), np.array((0,59011.53137)), 3.3e23) #re-initializing
     
     mercury.Verlet(sun,100*365,24*3600, rel=True)
     ps = mercury.p
     radchnge = np.arctan2(ps[87,1], ps[87,0]) #find change per year
     mercury = CelestialBody('Mercury', np.array((mercury.p[100*365-1,0],mercury.p[100*365-1,1])),
-                            np.array((mercury.v[100*365-1,0],mercury.v[100*365-1,1])), 3.285e23) #re-initializing from where we left off
+                            np.array((mercury.v[100*365-1,0],mercury.v[100*365-1,1])), 3.3e23) #re-initializing from where we left off
     pos, hours = mercury.VerletPerihelion(sun,3600, 1e-20)
     pos = pos/AU
     radtot = (36500+(hours)/24)/88 * radchnge #find change over a century + extra days
@@ -682,14 +682,15 @@ def proj_3i():
             radtot -= 2*np.pi
         elif radtot < 0:
             radtot += 2*np.pi
-            
+    if radtot < 0:
+        radtot += 2*np.pi
     lst = []
     for i in range(len(mercury.p)): #getting rid of all zeros in our array
         if np.linalg.norm(mercury.p[i]) != 0:
             lst.append(mercury.p[i])
     ps2 = np.array(lst)
     
-    final = 72 #plot only the final 72 values of ps
+    final = 87-int(hours/24) #plot only the final few days of our 100 years
     
     plt.figure()
     plt.scatter(0,0,s=15, color='r', label='Sun')
@@ -705,7 +706,7 @@ def proj_3i():
     
     
     theta = np.arctan2(pos[1],pos[0]) #current angle
-    real_deg = theta + radtot #find how much the current angle has deviated from expected value
+    real_deg = abs(theta - radtot) #find how much the current angle has deviated from expected value
     print('We find the angle to have changed by %.3f"' %(real_deg/(np.pi/648000)))
     
 """
