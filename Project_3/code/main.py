@@ -429,7 +429,7 @@ Call the function from the console
 def proj_3e():
     AU = 149.6e9
     betas = np.linspace(2,2.0275,12)
-    years = 25
+    years = 100
     bOrbits = np.zeros((len(betas),years*365,2))
     sun = CelestialBody('Sun', np.array((0,0)), np.array((0,0)), 2e30)
     j = 0
@@ -444,9 +444,11 @@ def proj_3e():
         b = betas[i]
         plt.plot(bOrbits[i,:,0]/AU, bOrbits[i,:,1]/AU, label='B = %.4f' %(b))
     plt.legend(loc='upper right')
-    plt.title('Earths orbit given different values of Beta over 25 years', pad=20)
+    plt.title('Earths orbit given different values of Beta over 100 years', pad=20)
     plt.xlabel('x position [AU]')
     plt.ylabel('y position [AU]')
+    plt.xlim(-4*1e-10,0.25*1e-10)
+    plt.ylim(-0.5*1e-10, 1.5*1e-10)
     plt.show()
     
     earth = CelestialBody('Earth', np.array((1*AU,0)), np.array((0,23.72e3)), 6e24) #re-initializing
