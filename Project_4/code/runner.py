@@ -1,9 +1,9 @@
 from functions import TtoCarlo, monteCarlo
 import multiprocessing as mp
 import numpy as np
-from itertools import product
+import itertools as it
 import time
-    
+
     
     
     
@@ -22,7 +22,7 @@ if __name__ == '__main__':
     T = np.arange(T1, T2+TStep, TStep)
     np.round(T,1)
     if threads > len(T): #if threads are greater than temperature then
-        excess = True #use excess threads to split up cycles in smaller chunks
+        excess = True #use excess threads to split up cycles in smaller chunks and mend later
         if threads % len(T) == 0: #special case where we get a neater solution
             special = True
             d = threads//len(T)
@@ -31,6 +31,7 @@ if __name__ == '__main__':
             d = int(np.floor(threads/len(T)))
             nCycles = cycles // d
             dd = int(threads - len(T)*d)
+            nnCycles = cycles // dd
             
     with mp.Pool(processes=threads) as pool:
         t0 = time.perf_counter()
@@ -40,10 +41,13 @@ if __name__ == '__main__':
             if special == True:
                     results = ([pool.apply_async(monteCarlo, (temp,L,nCycles)) for temp in T for iter in range(d)])
             else:
-                for temp in T:
-                    results = ([pool.apply_async(monteCarlo, (temp,L,nCycles)) for temp in T for iter in range(d)])
+                    results = ([pool.apply_async(monteCarlo, (temp,L,nCycles)) for temp in T[:len(T)-1] for iter in range(d)])
+                    leftover_res = ([pool.apply_async(monteCarlo, (T[len(T)-1],L,nnCycles)) for iter in range(dd)])
+                    for i in leftover_res:
+                        results.append(i)
+                    
                 
         print([res.get() for res in results])
-        print('\nTime:\n',time.perf_counter() - t0)
+        print('\nTime:\n%f' %(time.perf_counter() - t0))
         print('\nComplete!')
         last = (input('Press Enter to close program'))

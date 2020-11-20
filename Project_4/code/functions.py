@@ -43,34 +43,12 @@ def monteCarlo(T, L, cycles):
         absMex += int(np.fabs(M))
 
 
-    #Normalize average values
-    Eex       /= float(cycles);
-    E2ex      /= float(cycles);
-    Mex       /= float(cycles);
-    M2ex      /= float(cycles);
-    absMex    /= float(cycles);
-    #Calculate variance and normalize to per-point and T
-    L2 = L*L
-    E_variance  = (E2ex-Eex*Eex)/float(L2*T*T);
-    M_variance  = (M2ex-Mex*Mex)/float(L2*T);
-    #Normalize returned averages to per-point
-    Eex       /= float(L2);
-    Mex       /= float(L2);
-    absMex    /= float(L2);
+    store = np.array((T, Eex, E2ex, Mex, M2ex, absMex))
     
-    return (T, Eex, E_variance, Mex, M_variance, absMex)
-
-def TtoCarlo(T1, T2, TStep, L, cycles):
-    T = np.arange(T1, T2+TStep, TStep)
-    TL = len(T)
-    j = 0
-    store = np.zeros((TL, 6))
-    for i in T:
-        print(i)
-        store[j,:] = monteCarlo(i, L, cycles)
-        j += 1
     return store
 
+def sorter(arr, d):
+    return arr
     
 def normer(Eex, E2ex, Mex, M2ex, absMex, L, cycles):
     Eex       /= float(cycles)
@@ -86,3 +64,16 @@ def normer(Eex, E2ex, Mex, M2ex, absMex, L, cycles):
     absMex    /= float(L2)
     
     return (Eex, E_variance, Mex, M_variance, absMex)
+
+
+def TtoCarlo(T1, T2, TStep, L, cycles):
+    T = np.arange(T1, T2+TStep, TStep)
+    TL = len(T)
+    j = 0
+    store = np.zeros((TL, 6))
+    for i in T:
+        print(i)
+        store[j,:] = monteCarlo(i, L, cycles)
+        j += 1
+    return store
+
