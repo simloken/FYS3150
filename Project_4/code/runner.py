@@ -1,4 +1,4 @@
-from functions import TtoCarlo, monteCarlo
+from functions import TtoCarlo, monteCarlo, sorter
 import multiprocessing as mp
 import numpy as np
 import itertools as it
@@ -17,8 +17,8 @@ if __name__ == '__main__':
     T1 = float(input('Intial Temperature:\n'))
     T2 = float(input('End Temperature:\n'))
     TStep = float(input('Temperature Step:\n'))
-    excess = False; special = False
-    
+    excess = False; special = False; leftover = False
+    dd = 0
     T = np.arange(T1, T2+TStep, TStep)
     np.round(T,1)
     if threads > len(T): #if threads are greater than temperature then
@@ -41,13 +41,15 @@ if __name__ == '__main__':
             if special == True:
                     results = ([pool.apply_async(monteCarlo, (temp,L,nCycles)) for temp in T for iter in range(d)])
             else:
+                    leftover = True
                     results = ([pool.apply_async(monteCarlo, (temp,L,nCycles)) for temp in T[:len(T)-1] for iter in range(d)])
                     leftover_res = ([pool.apply_async(monteCarlo, (T[len(T)-1],L,nnCycles)) for iter in range(dd)])
                     for i in leftover_res:
                         results.append(i)
-                    
                 
-        print([res.get() for res in results])
+        preRes = np.array(([res.get() for res in results]))
+        sortRes = sorter(preRes, T, L, cycles)
+        print(sortRes)
         print('\nTime:\n%f' %(time.perf_counter() - t0))
         print('\nComplete!')
         last = (input('Press Enter to close program'))

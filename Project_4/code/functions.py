@@ -47,23 +47,43 @@ def monteCarlo(T, L, cycles):
     
     return store
 
-def sorter(arr, d):
-    return arr
+def sorter(arr,T, L, cycles):
+    sarr = arr[np.argsort(arr[:,0])] #sort by temperature
+    TL = len(T)
+    narr = np.zeros((TL, 6))
+    for i in range(TL):
+        narr[i][0] = T[i]
+    for k in range(TL):
+        for i in sarr:
+            if i[0] == narr[k][0]:
+                for j in range(len(i) -1):
+                    narr[k][j+1] += i[j+1]
+    sarr = np.zeros((TL, 6))
+    for i in range(TL):                
+        sarr[i] = normer(narr[i], L, cycles)    
+    return sarr
     
-def normer(Eex, E2ex, Mex, M2ex, absMex, L, cycles):
+def normer(arr, L, cycles):
+    T = arr[0]
+    Eex = arr[1]; E2ex = arr[2]; Mex = arr[3]; M2ex = arr[4]; absMex = arr[5]
+    
     Eex       /= float(cycles)
     E2ex      /= float(cycles)
     Mex       /= float(cycles)
     M2ex      /= float(cycles)
     absMex    /= float(cycles)
+    
     L2 = L*L
     E_variance  = (E2ex-Eex*Eex)/float(L2*T*T)
     M_variance  = (M2ex-Mex*Mex)/float(L2*T)
+    
     Eex       /= float(L2)
     Mex       /= float(L2)
     absMex    /= float(L2)
     
-    return (Eex, E_variance, Mex, M_variance, absMex)
+    narr = np.array((T, Eex, E_variance, Mex, M_variance, absMex))
+    
+    return narr
 
 
 def TtoCarlo(T1, T2, TStep, L, cycles):
