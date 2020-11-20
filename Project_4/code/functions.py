@@ -4,7 +4,7 @@ def period(i, mx, add):
     return (i+mx+add)%mx
 
 def monteCarlo(T, L, cycles):
-    print('Carlo called')
+    print('Carlo called\nTemp:', T)
     spintrix = np.zeros( (L,L), np.int8) + 1
     
     E = 0; M = 0
@@ -70,3 +70,19 @@ def TtoCarlo(T1, T2, TStep, L, cycles):
         store[j,:] = monteCarlo(i, L, cycles)
         j += 1
     return store
+
+    
+def normer(Eex, E2ex, Mex, M2ex, absMex, L, cycles):
+    Eex       /= float(cycles)
+    E2ex      /= float(cycles)
+    Mex       /= float(cycles)
+    M2ex      /= float(cycles)
+    absMex    /= float(cycles)
+    L2 = L*L
+    E_variance  = (E2ex-Eex*Eex)/float(L2*T*T)
+    M_variance  = (M2ex-Mex*Mex)/float(L2*T)
+    Eex       /= float(L2)
+    Mex       /= float(L2)
+    absMex    /= float(L2)
+    
+    return (Eex, E_variance, Mex, M_variance, absMex)
