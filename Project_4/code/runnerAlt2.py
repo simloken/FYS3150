@@ -17,7 +17,7 @@ if __name__ == '__main__':
     T1 = float(input('Intial Temperature:\n'))
     T2 = float(input('End Temperature:\n'))
     TStep = float(input('Temperature Step:\n'))
-    
+    print('\n\n')
     
     T = np.arange(T1, round(T2+TStep), TStep)
     T = np.around(T, 1)

@@ -19,7 +19,7 @@ if __name__ == '__main__':
     T1 = float(input('Intial Temperature:\n'))
     T2 = float(input('End Temperature:\n'))
     TStep = float(input('Temperature Step:\n'))
-    
+    print('\n\n')
     nCycles = cycles // threads
     nCycles = int(nCycles)
     t0 = time.perf_counter()
