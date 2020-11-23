@@ -24,6 +24,7 @@ if __name__ == '__main__':
         progress = str(input('Would you like to track progress during calculation? [True/False]\n'))
         extras = str(input('Would you like to calculate extra values (Cv, X)? [True/False]\n'))
         state = str(input('Would you like the initial spins to be randomized? [True/False]\n'))
+        
     else:
         threads = int(sys.argv[1])
         if threads > mp.cpu_count():
@@ -68,9 +69,9 @@ if __name__ == '__main__':
             d = threads//len(T)
             nCycles = cycles // d
         else: #if there is not a perfect match
-            d = int(np.floor(threads/len(T)))
+            d = threads//len(T)
             nCycles = cycles // d
-            dd = int(threads - len(T)*d) #left over threads that will only calculate the last temperature
+            dd = threads - d*len(T) #left over threads that will only calculate the last temperature
             nnCycles = cycles // dd #using nnCycles as size      
     with mp.Pool(processes=threads) as pool:
         
@@ -127,15 +128,22 @@ if __name__ == '__main__':
             file.close()#given the calculation times it's nice to have (just in case)
         
         plt.figure()
+        plt.xlabel('Temperature [kT/J]')
+        plt.title('Various Values for L = %i over %i Montecarlo Cycles' %(L, cycles))
         plt.plot(T, sortRes[:,1], label='Mean E')
         plt.plot(T, sortRes[:,5], label='|Mean M|')
-        if extras == True:
-            plt.plot(T, Cv, label='Specific Heat')
-            plt.plot(T, X, label='Magetic Susceptibility')
-        plt.legend()
-        plt.title('Various Values for L = %i over %i Montecarlo Cycles' %(L, cycles))
-        plt.xlabel('Temperature [kT/J]')
         plt.show()
+        if extras == True:
+            plt.figure()
+            plt.xlabel('Temperature [kT/J]')
+            plt.title('Specific Heat for L = %i over %i Montecarlo Cycles' %(L, cycles))
+            plt.plot(T, Cv, label='Specific Heat')
+            plt.show()
+            plt.figure()
+            plt.title('Magnetic Susceptibility for L = %i over %i Montecarlo Cycles' %(L, cycles))
+            plt.xlabel('Temperature [kT/J]')
+            plt.plot(T, X, label='Magetic Susceptibility')
+            plt.show()
         last = (input('Press Enter to close program'))
 
         os.chdir(cwd)
