@@ -6,9 +6,6 @@ class Simulation:
             N,
             NN,
             MCS,
-            cB=0.5,
-            clusterd=False,
-            random = False,
             plotting=False):
         
         self.N = N
@@ -18,29 +15,12 @@ class Simulation:
         self.times = np.zeros(N)
         self.dT = []
         self.time = 0
-        self.clusterd = clusterd
-        self.cB = cB
-        self.random = random
-        self.times = np.zeros(1000)
-        
         
     def run(self):
-        Alst = []; Blst = []; ABlst = [];
-        if self.clusterd == False:
-            self.V = np.random.choice([-1,1], size=(self.N)) #either up or down
-        else:
-            self.V = np.ones(self.N) #array of all A
-            if self.random == True:
-                k = 0
-                while k < int(self.N*self.cB):
-                    ridx = np.random.randint(self.N)
-                    if self.V[ridx] != -1:
-                        self.V[ridx] = -1
-                        k += 1
-            else:
-                for i in range(int(self.N*self.cB)):
-                    self.V[i] = -1
-                
+        Alst = []; Blst = []; ABlst = []; self.persons = []
+        self.V = np.random.choice([-1,1], size=(self.N)) #either up or down
+        for i in self.V:
+            self.persons.append(person(i))
             
         if self.plotting==True:
             plt.figure(figsize=(8, 1))
@@ -96,7 +76,7 @@ class Simulation:
         
     def dynamicRules(self, V, MCS):
         m = []
-        
+        V = self.persons
         tenth = MCS//10
         tenths = []
         for i in range(9):
@@ -104,59 +84,66 @@ class Simulation:
         j = 1
         for i in range(MCS):
             N = len(V)
-            ridx = np.random.randint(N-1)
-            if ridx not in [0, N-2]:
-                if V[ridx] == V[ridx+1]:
-                    V[ridx-1] = self.opinion(V[ridx-1], V[ridx], i, ridx, -1)
-                    V[ridx+2] = self.opinion(V[ridx+2], V[ridx], i, ridx, +2)
-                elif V[ridx] == -V[ridx+1]:
-                    V[ridx-1] = self.opinion(V[ridx-1], V[ridx+1], i, ridx, -1)
-                    V[ridx+2] = self.opinion(V[ridx+2], V[ridx], i, ridx, +2)
+            ridx = np.random.randint(N-2)
+            if ridx != 0:
+                if V[ridx].opinion == V[ridx+1].opinion:
+                    V[ridx-1].change(V[ridx].opinion, i, 1); V[ridx+2].change(V[ridx].opinion, i, 1)
+                elif V[ridx].opinion == -V[ridx+1].opinion:
+                    V[ridx-1].change(V[ridx+1].opinion, i, 1); V[ridx+2].change(V[ridx].opinion, i, 1)
                 
-            
+                self.dT.append(i - self.times[ridx+2])
+                self.dT.append(i - self.times[ridx-1])
                 
+                self.times[ridx+2] = i
+                self.times[ridx-1] = i
             
-            elif ridx == N-2: #upper bound
-                if V[ridx] == V[ridx+1]:
-                    V[ridx-1] = self.opinion(V[ridx-1], V[ridx], i, ridx, -1)
-                elif V[ridx] == -V[ridx+1]:
-                    V[ridx-1] = self.opinion(V[ridx-1], V[ridx+1], i, ridx, -1)
-            
-            elif ridx == 0: #lower bound
-                if V[ridx] == V[ridx+1]:
-                    V[ridx+2] = self.opinion(V[ridx+2], V[ridx], i, ridx, +2)
-                elif V[ridx] == -V[ridx+1]:
-                    V[ridx+2] = self.opinion(V[ridx+2], V[ridx], i, ridx, +2)
+            elif ridx == 0:
+                if V[ridx].opinion == V[ridx+1].opinion:
+                    V[ridx-1].change(V[ridx].opinion, i, 1)
+                elif V[ridx].opinion == -V[ridx+1].opinion:
+                    V[ridx-1].change(V[ridx+1].opinion, i, 1)
                     
                 
-            m.append(self.magnet(V))
+                self.dT.append(i - self.times[ridx+2])
+                self.times[ridx+2] = i
+            lst = [] 
+            for k in range(self.N):
+               lst.append(V[k].opinion)
+            m.append(self.magnet(lst))
             
             if self.plotting==True and i in tenths:
                 plt.figure(figsize=(8, 1))
                 plt.title('Midway spread (%i%%)' %(j*10))
                 j += 1
                 
-                plt.plot((range(len(V))), V, color='k')
+                plt.plot((range(len(lst))), lst, color='k')
                 plt.show()
                 
             self.time += 1
             
         
-        return V, m
+        return lst, m
     
     
     def magnet(self, V):
         m = (1/len(V)) * np.sum(V)
         return m
     
-    def opinion(self, reciever, flipper, i, ridx, tun):
+    
+class person:
+    
+    def __init__(self,
+             opinion):
+        self.opinion = opinion
+        self.changed = False
+        self.changetimes = []
         
-        if reciever != flipper:
-            reciever = flipper
-            self.dT.append(i-self.times[ridx+tun]) #causes the weird plot spread in c
-            #self.dT.append(i)
+    def change(self, s, i, ct):
+        self.opinion = s
+        self.changed = True
+        self.changetimes.append(i)
             
-            self.times[ridx+tun] = i
             
         
-        return reciever
+        
+    
