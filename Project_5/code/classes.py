@@ -9,7 +9,8 @@ class Simulation:
             cB=0.5,
             clusterd=False,
             random = False,
-            plotting=False):
+            plotting=False,
+            switch_proba=None):
         
         self.N = N
         self.NN = NN
@@ -22,6 +23,7 @@ class Simulation:
         self.cB = cB
         self.random = random
         self.times = np.zeros(1000)
+        self.switch_proba = switch_proba
         
         
     def run(self):
@@ -30,19 +32,19 @@ class Simulation:
             self.V = np.random.choice([-1,1], size=(self.N)) #either up or down
         else:
             self.V = np.ones(self.N) #array of all A
-            if self.random == True:
+            if self.random == True: #random placements of B, total N*cB
                 k = 0
                 while k < int(self.N*self.cB):
                     ridx = np.random.randint(self.N)
                     if self.V[ridx] != -1:
                         self.V[ridx] = -1
                         k += 1
-            else:
+            else: #first cB*N elements are B
                 for i in range(int(self.N*self.cB)):
                     self.V[i] = -1
                 
             
-        if self.plotting==True:
+        if self.plotting==True: #initial distribution
             plt.figure(figsize=(8, 1))
             plt.title('Initial Spread')
             plt.plot((range(len(self.V))), self.V, color='k')
@@ -52,7 +54,7 @@ class Simulation:
         self.V, self.m = self.dynamicRules(self.V, self.MCS) #run over with MCS montecarlo steps
        
         
-        if self.plotting==True:
+        if self.plotting==True: #final distribution
             plt.figure(figsize=(8, 1))
             plt.title('Finished Spread')
             plt.plot((range(len(self.V))), self.V, color='k')
@@ -62,10 +64,10 @@ class Simulation:
         for i in range(self.NN): #pick random spot NN times to gauge spin consensus
             ridx = np.random.randint(self.N-2)
             lst = []
-            lst.append(self.V[ridx-1])
-            lst.append(self.V[ridx-2])
-            lst.append(self.V[ridx+1])
-            lst.append(self.V[ridx+2])
+            lst.append(self.V[ridx-1]) #add closest neighbours (2)
+            lst.append(self.V[ridx-2]) #on both sides
+            lst.append(self.V[ridx+1]) #then gauge
+            lst.append(self.V[ridx+2]) #contents of list
             if 1 not in lst: #if all -1
                 B += 1
             elif -1 not in lst: #if all +1
@@ -73,13 +75,13 @@ class Simulation:
             elif 1 in lst and -1 in lst: #if both
                 AB += 1
     
-        Alst.append(A); Blst.append(B); ABlst.append(AB)
+        Alst.append(A); Blst.append(B); ABlst.append(AB) #add states to list, remnant from when I would do multiple runs
             
-        A = np.mean(Alst)
+        A = np.mean(Alst) #find means
         B = np.mean(Blst)
         AB = np.mean(ABlst)
         
-        A /= self.NN
+        A /= self.NN #percentages
         B /= self.NN
         AB /= self.NN
         
@@ -99,14 +101,20 @@ class Simulation:
         
         tenth = MCS//10
         tenths = []
-        for i in range(9):
+        for i in range(9): #for plotting midway
                 tenths.append(tenth*(i+1))
         j = 1
+        N = len(V)
         for i in range(MCS):
-            N = len(V)
-            ridx = np.random.randint(N-1)
-            if ridx not in [0, N-2]:
-                if V[ridx] == V[ridx+1]:
+            ridx = np.random.randint(N-1) #random element chosen
+            
+            if self.switch_proba != None: #whether to have some random chance for 
+                chance = np.random.uniform() #element ridx to flip
+                if chance < self.switch_proba:
+                        V[ridx] *= -1
+                    
+            if ridx not in [0, N-2]: #boundaries, must be treated as special cases
+                if V[ridx] == V[ridx+1]: #else errors arise
                     V[ridx-1] = self.opinion(V[ridx-1], V[ridx], i, ridx, -1)
                     V[ridx+2] = self.opinion(V[ridx+2], V[ridx], i, ridx, +2)
                 elif V[ridx] == -V[ridx+1]:
@@ -116,22 +124,22 @@ class Simulation:
             
                 
             
-            elif ridx == N-2: #upper bound
+            elif ridx == N-2: #upper bound special case
                 if V[ridx] == V[ridx+1]:
                     V[ridx-1] = self.opinion(V[ridx-1], V[ridx], i, ridx, -1)
                 elif V[ridx] == -V[ridx+1]:
                     V[ridx-1] = self.opinion(V[ridx-1], V[ridx+1], i, ridx, -1)
             
-            elif ridx == 0: #lower bound
+            elif ridx == 0: #lower bound special case
                 if V[ridx] == V[ridx+1]:
                     V[ridx+2] = self.opinion(V[ridx+2], V[ridx], i, ridx, +2)
                 elif V[ridx] == -V[ridx+1]:
                     V[ridx+2] = self.opinion(V[ridx+2], V[ridx], i, ridx, +2)
                     
                 
-            m.append(self.magnet(V))
+            m.append(self.magnet(V)) #find m for current MCS
             
-            if self.plotting==True and i in tenths:
+            if self.plotting==True and i in tenths: #print distribution for each 10th of MCS
                 plt.figure(figsize=(8, 1))
                 plt.title('Midway spread (%i%%)' %(j*10))
                 j += 1
@@ -151,12 +159,9 @@ class Simulation:
     
     def opinion(self, reciever, flipper, i, ridx, tun):
         
-        if reciever != flipper:
-            reciever = flipper
-            self.dT.append(i-self.times[ridx+tun]) #causes the weird plot spread in c
-            #self.dT.append(i)
+        if reciever != flipper: #if opinions are different
+            reciever = flipper #change opinion of reciever
+            self.dT.append(i-self.times[ridx+tun]) #causes the weird plot spread in c (why?!)
             
-            self.times[ridx+tun] = i
-            
-        
-        return reciever
+            self.times[ridx+tun] = i #track time for when opinion was changed
+        return reciever #returns (new) opinion
