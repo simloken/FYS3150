@@ -6,7 +6,6 @@ from classes import Simulation
 #np.random.seed(98) # good seed for MCS = 100000
 #np.random.seed(33) # good seed for MCS = 10000
 sim = Simulation(500, 10000, 7000000, plotting=True)
-#sim = Simp(1000, 10000, 10000, plotting=True)
 A,B,C,M = sim.run()
    
 M = np.asarray(M)
@@ -30,6 +29,7 @@ plt.show()
 def decisionTimes(runs, N, NN, MCS, plotting=False): #pass an object instead? or dont
     decisionTime = []
     times = []
+    adt = []
     for i in range(runs):
         
         sim = Simulation(N, NN, MCS, plotting)
@@ -39,32 +39,44 @@ def decisionTimes(runs, N, NN, MCS, plotting=False): #pass an object instead? or
             #decisionTime[j] = (sim.dT[j])
     
         decisionTime.append(sim.dT)
-        
+        adt.append(sim.adT)
     lst = []
     for i in decisionTime:
         for j in i:
             lst.append(j)
-            
+    lst2 = []        
+    for i in adt:
+        for j in i:
+            lst2.append(j)
         
     dt = np.asarray(lst).ravel()
+    adt = np.asarray(lst2).ravel()
     
-    return dt
+    return dt, adt
 
-dt = decisionTimes(1, 500, 10000, 7000000)
+dt, adt = decisionTimes(1, 500, 10000, 7000000)
 x = np.linspace(2,10000, 9998)
-def powerlaw(x, p):
-    return x**(p)
+def powerlaw(x, p, c=1):
+    return c*x**(p)
 plt.figure()
-power = -3/2
-plt.loglog(x, powerlaw(x, (power)), color='r')
+power = -4/3
+
 plt.loglog(range(len(dt)), 0.1/dt, '+', color='g')
+plt.loglog(x, powerlaw(x, (power)), color='r')
 plt.title('Correlation between a power law with exponent ~ %g and decision times' %(power))
-plt.xlabel('$\tau$')
-plt.ylabel('$P(\tau)$')
+plt.xlabel('$\\tau$')
+plt.ylabel('$P(\\tau)$')
 plt.show()
-
-
 """
+plt.figure()
+plt.loglog(range(len(adt)), 0.4/adt, '+', color='g')
+plt.loglog(x, powerlaw(x, (power)), color='r')
+plt.title('Correlation between a power law with exponent ~ %g and decision times' %(power))
+plt.xlabel('$\\tau$')
+plt.ylabel('$P(\\tau)$')
+plt.show()
+"""
+
 def clustered(cB, N, NN, MCS, random=False, plotting=False):
     
     sim = Simulation(N, NN, MCS, cB, clusterd=True, random=random, plotting=plotting)
@@ -75,13 +87,15 @@ def clustered(cB, N, NN, MCS, random=False, plotting=False):
     
     dt = sim.dT
     dt = np.asarray(dt)
+    adt = sim.adT
+    adt = np.asarray(adt)
     
-    return dt
+    return dt, adt
     
-dt2 = clustered(0.5, 1000, 10000, 10000, random=True, plotting=False)
-plt.loglog(x, power(x, (-3/2)), color='r')
+dt2, _ = clustered(0.2, 500, 10000, 7000000, random=True, plotting=False)
+plt.loglog(x, powerlaw(x, (-3/2)), color='r')
 plt.loglog(range(len(dt2)), 0.1/dt2, '+', color='g')
-plt.show()"""
+plt.show()
 
 
 def probas(N, NN, MCS, switch_proba):
@@ -95,6 +109,6 @@ def probas(N, NN, MCS, switch_proba):
     plt.show()
     
 
-probas(500, 10000, 10000000, 3e-6)
+probas(500, 10000, 7000000, 3e-6)
     
     

@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+
 class Simulation:
     
     def __init__(self,
@@ -18,6 +19,7 @@ class Simulation:
         self.plotting = plotting
         self.times = np.zeros(N)
         self.dT = []
+        self.adT = []
         self.time = 0
         self.clusterd = clusterd
         self.cB = cB
@@ -101,7 +103,6 @@ class Simulation:
         
         
         
-        
     def dynamicRules(self, V, MCS):
         m = []
         
@@ -125,7 +126,13 @@ class Simulation:
                     has_happened=True
                     self.consensus = 'Yes'
                     timer = 0
-                elif np.equal(V[::2], -1).all() == True or np.equal(V[1::2], -1).all() == True:
+                elif np.equal(V[::2], -1).all() == True and np.equal(V[1::2], 1).all() == True:
+                    if np.equal(V, 1).all() == False and np.equal(V, -1).all() == False:
+                        print('Consensus Reached: Stalemate')
+                        has_happened=True
+                        self.consensus = 'Stalemate'
+                        timer = 0        
+                elif np.equal(V[::2], 1).all() == True and np.equal(V[1::2], -1).all() == True:
                     if np.equal(V, 1).all() == False and np.equal(V, -1).all() == False:
                         print('Consensus Reached: Stalemate')
                         has_happened=True
@@ -169,7 +176,7 @@ class Simulation:
                 if timer >= np.ceil(MCS*0.05):
                     break
             
-            if self.plotting==True and i in tenths: #print distribution for each 10th of MCS
+            if self.plotting==True and i in tenths and has_happened != True: #print distribution for each 10th of MCS
                 plt.figure(figsize=(8, 1))
                 plt.title('Midway spread (%i%%)' %(j*10))
                 plt.xlabel('Element i')
@@ -196,5 +203,6 @@ class Simulation:
             reciever = flipper #change opinion of reciever
             self.dT.append(i-self.times[ridx+tun]) #causes the weird plot spread in c (why?!)
             
+            self.adT.append(i) #alternative measure of time, measures at what time an opinion was changed
             self.times[ridx+tun] = i #track time for when opinion was changed
         return reciever #returns (potentially new) opinion
