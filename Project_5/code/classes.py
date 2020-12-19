@@ -1,6 +1,26 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+"""
+    The simulation class. Handles everything
+    
+    N : integer
+    The number of elements
+    NN : integer
+    The number of elements to randomly sample to get the spread
+    MCS : integer
+    The number of Monte Carlo cycles
+    cB : float
+    The concentration of opinion B. Must be within [0, 1]
+    clusterd : boolean
+    Whether or not to use cB as B concentration. If false, all elements are instead randomly chosen
+    random : boolean
+    Only ever used if clusterd is True. Whether or not to randomly choose B or cluster them together.
+    plotting : boolean
+    Whether or not to plot the opinion spread
+    switch_proba : None or float
+    If not None, then this is the probability that a random element i will flip at a given timestep.
+    
+"""
 class Simulation:
     
     def __init__(self,
@@ -27,7 +47,11 @@ class Simulation:
         self.times = np.zeros(1000)
         self.switch_proba = switch_proba
         
-        
+    """
+        The run function
+        This is the function that is called after we've defined our object
+        Returns the percentage of opinion A, B, C and the magnetization array m.
+    """    
     def run(self):
         Alst = []; Blst = []; ABlst = [];
         if self.clusterd == False:
@@ -102,7 +126,15 @@ class Simulation:
         
         
         
+    """
+        The actual Monte Carlo algorithm.
+        V : array-like
+        The initial opinion array
+        MCS : integer
+        The number of Monte Carlo cycles.
         
+        Returns the new opinion array V and the magnetization for each timestep m
+    """    
     def dynamicRules(self, V, MCS):
         m = []
         
@@ -132,8 +164,8 @@ class Simulation:
                         has_happened=True
                         self.consensus = 'Stalemate'
                         timer = 0        
-                elif np.equal(V[::2], 1).all() == True and np.equal(V[1::2], -1).all() == True:
-                    if np.equal(V, 1).all() == False and np.equal(V, -1).all() == False:
+                elif np.equal(V[::2], 1).all() == True and np.equal(V[1::2], -1).all() == True: #extra elif because sometimes the other
+                    if np.equal(V, 1).all() == False and np.equal(V, -1).all() == False: #stalemate does not trigger ???
                         print('Consensus Reached: Stalemate')
                         has_happened=True
                         self.consensus = 'Stalemate'
@@ -192,11 +224,32 @@ class Simulation:
         
         return V, m
     
-    
+    """
+        The magnetization function
+        V: array-like
+        Input array of all opinions
+        
+        Returns a magnetization value.
+    """
     def magnet(self, V):
         m = (1/len(V)) * np.sum(V)
         return m
     
+    """
+        Our opinion function
+        reciever : integer
+        The opinion of the element whose potentially having its opinion switched
+        flipper : integer
+        The opinion of the element whose potentially flipping the reciever
+        i : integer
+        The current timestep
+        ridx : integer
+        The random element chosen
+        tun : integer
+        A tuning parameter, either +2 or -1 to signify which reciever we're changing.
+        
+        Flips opinion only if opinions are different, and registers a decision time.
+    """
     def opinion(self, reciever, flipper, i, ridx, tun):
         
         if reciever != flipper: #if opinions are different
@@ -205,4 +258,5 @@ class Simulation:
             
             self.adT.append(i) #alternative measure of time, measures at what time an opinion was changed
             self.times[ridx+tun] = i #track time for when opinion was changed
+            
         return reciever #returns (potentially new) opinion
